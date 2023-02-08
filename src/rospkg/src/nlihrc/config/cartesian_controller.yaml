@@ -1,0 +1,3 @@
+cartesian_controller:
+    type: nlihrc/CartesianController
+    arm_id: $(arg arm_id)

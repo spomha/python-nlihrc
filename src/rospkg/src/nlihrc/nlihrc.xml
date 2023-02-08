@@ -1,0 +1,7 @@
+<library path="lib/libnlihrc">
+  <class name="nlihrc/CartesianController" type="nlihrc::CartesianController" base_class_type="controller_interface::ControllerBase">
+    <description>
+      A controller for Franka Panda that handles servoing for NLIHRC application
+    </description>
+  </class>
+</library>
