@@ -81,7 +81,7 @@ TLDR:
 
 - Create and activate a Python 3.8 virtualenv (assuming virtualenvwrapper)::
 
-    mkvirtualenv -p `which python3.8` my_virtualenv
+    mkvirtualenv -p `which python3.8` nlihrc
 
 - Init your repo (first create it on-line and make note of the remote URI)::
 

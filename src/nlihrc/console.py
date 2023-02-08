@@ -1,26 +1,40 @@
-"""CLI entrypoints for nlihrc"""
-import logging
+"""
+CLI entrypoints for nlihrc
+NOTE: ROS MASTER NODE MUST BE RUNNING TO USE THIS APPLICATION!
+"""
+from pathlib import Path
 
 import click
-
-from libadvian.logging import init_logging
+import toml
 from nlihrc import __version__
+from nlihrc.main import main_speech, main_robot
 
 
-LOGGER = logging.getLogger(__name__)
-
-
-@click.command()
+@click.group()
 @click.version_option(version=__version__)
-@click.option("-l", "--loglevel", help="Python log level, 10=DEBUG, 20=INFO, 30=WARNING, 40=CRITICAL", default=30)
-@click.option("-v", "--verbose", count=True, help="Shorthand for info/debug loglevel (-v/-vv)")
-def nlihrc_cli(loglevel: int, verbose: int) -> None:
-    """Natural Language Instructions for Human Robot Collaboration """
-    if verbose == 1:
-        loglevel = 20
-    if verbose >= 2:
-        loglevel = 10
-    init_logging(loglevel)
-    LOGGER.setLevel(loglevel)
+@click.argument("config-path", type=click.Path(exists=True, file_okay=True, dir_okay=False))
+@click.pass_context
+def nlihrc_cli(ctx, config_path: Path,) -> None:
+    """Main Entrypoint"""
+    ctx.ensure_object(dict)
+    config = toml.load(config_path)
+    ctx.obj['CONFIG'] = config
 
-    click.echo("Do your thing")
+
+@nlihrc_cli.command()
+@click.pass_context
+def speech(ctx):
+    """Run speech server"""
+    config = ctx.obj['CONFIG']
+    click.echo("Running Speech only server...")
+    main_speech(config)
+
+
+@nlihrc_cli.command()
+@click.pass_context
+def robot(ctx):
+    """Run robot server"""
+    config = ctx.obj['CONFIG']
+    click.echo("Running Robot only server...")
+
+    main_robot(config)
