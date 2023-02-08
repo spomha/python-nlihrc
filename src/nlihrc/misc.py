@@ -1,6 +1,10 @@
 """Utility functions"""
 from enum import Enum, unique
 
+import numpy as np
+from transforms3d._gohlketransforms import quaternion_matrix, euler_matrix, quaternion_from_matrix
+
+
 class GoalStatus(Enum):
     PENDING = 0   # The goal has yet to be processed by the action server
     ACTIVE  = 1   # The goal is currently being processed by the action server
@@ -22,30 +26,18 @@ class GoalStatus(Enum):
 
 
 class CommandMode(Enum):
-    CONTINUOUS = 0
-    STEP = 1
-    MODEL = 2
+    CONTINUOUS = 'continuous'
+    STEP = 'step'
+    MODEL = 'model'
 
 
-    #   0	& START ROBOT	& - \\
-    #   1	& STOP ROBOT	& - \\
-    #   2	& SET MODE STEP	& - \\
-    #   3	& SET MODE CONTINUOUS	& - \\
-    #   4	& SET MODE MODEL	& - \\
-    #   5	& MOVE UP	& STEP/CONTINUOUS \\
-    #   6	& MOVE DOWN	& STEP/CONTINUOUS \\
-    #   7	& MOVE LEFT	& STEP/CONTINUOUS \\
-    #   8	& MOVE RIGHT	& STEP/CONTINUOUS \\
-    #   9	& MOVE BACK	& STEP/CONTINUOUS \\
-    #   10	& MOVE FRONT	& STEP/CONTINUOUS \\
-    #   11	& STOP EXECUTION	& STEP/CONTINUOUS/MODEL \\
-    #   12   & STEP SIZE <VALUE> & STEP \\
-    #   13   & OPEN TOOL & STEP/CONTINUOUS/MODEL \\
-    #   14   & CLOSE TOOL & STEP/CONTINUOUS/MODEL \\
-    #   15   & ROTATE TOOL <VALUE> & STEP/CONTINUOUS \\
-    #   16   & SAVE POSITION <VALUE> & STEP/CONTINUOUS \\
-    #   17   & LOAD POSITION <VALUE> & STEP/CONTINUOUS \\
-    #   18   & HOME & STEP/CONTINUOUS/MODEL \\
+class MoveDirection(Enum):
+    UP = 'up'
+    DOWN = 'down'
+    LEFT = 'left'
+    RIGHT = 'right'
+    FRONT = 'front'
+    BACK = 'back'
 
 @unique
 class Command(Enum):
@@ -69,6 +61,15 @@ class Command(Enum):
     LOAD_POSITION = 17
     HOME = 18
 
-class Controllers(Enum):
+class Controller(Enum):
     MOVEIT = "/position_joint_trajectory_controller"
     SERVO = "/cartesian_controller"
+
+
+def get_relative_orientation(reference, yaw_rotation):
+    """Get orientation relative to reference. Reference is in quaternion (WXYZ) while rotation is given in yaw degrees. Returned orientation is in quaternion (WXYZ)"""
+    ref_matrix = quaternion_matrix(reference)
+    rel_matrix = euler_matrix(0, 0, np.radians(yaw_rotation), 'sxyz')
+    res_matrix = np.dot(rel_matrix, ref_matrix)
+    
+    return quaternion_from_matrix(res_matrix)

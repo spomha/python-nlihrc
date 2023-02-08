@@ -7,8 +7,10 @@ from controller_manager_msgs.srv import SwitchController
 import franka_gripper.msg
 from actionlib_msgs.msg import GoalStatusArray
 from moveit_msgs.msg import RobotTrajectory
+import geometry_msgs.msg
+from std_msgs.msg import String
 
-from nlihrc.misc import GoalStatus, CommandMode, Command, Controller
+from nlihrc.misc import GoalStatus, CommandMode, Command, Controller, MoveDirection, get_relative_orientation
 
 
 class ControllerSwitcher:
@@ -17,6 +19,8 @@ class ControllerSwitcher:
         self.active = active
         self.stopped = stopped
         self.strictness = 2
+        self.start_asap = False
+        self.timeout = 0.0
 
     def switch_controller(self, active: Controller, stop: Controller):
         if self.active == active:
@@ -24,7 +28,7 @@ class ControllerSwitcher:
         rospy.wait_for_service('/controller_manager/switch_controller')
         try:
             switcher = rospy.ServiceProxy('/controller_manager/switch_controller', SwitchController)
-            switcher([active.value], [stop.value], self.strictness)
+            switcher([active.value], [stop.value], self.strictness, start_asap=self.start_asap, timeout=self.timeout)
             self.active = active
             self.stopped = stop
         except rospy.ServiceException as e:
@@ -44,6 +48,8 @@ class Manipulator:
         self.robot = moveit_commander.RobotCommander()
         self.scene = moveit_commander.PlanningSceneInterface()
         self.move_group = moveit_commander.MoveGroupCommander("panda_arm")
+        # Initialize servo controller publisher
+        self.servo_pub = rospy.Publisher('/cartesian_controller/command', String, queue_size=1)
         # Set grasp tool as EE link
         self.move_group.set_end_effector_link("panda_hand_tcp")
         self.subscriber_feedback = rospy.Subscriber("/move_group/status",
@@ -116,6 +122,9 @@ class Manipulator:
         self.grasp_action_client.send_goal(goal)
         self.grasp_action_client.wait_for_result()
 
+    def servo_move(self, data):
+        """Publish command to servo controller"""
+        self.servo_pub.publish(data)
 
     
 
@@ -141,9 +150,16 @@ class CommandGenerator:
         self.cmds = {
             Command.START_ROBOT: lambda: self.setup_robot(True),
             Command.STOP_ROBOT: lambda: self.setup_robot(False),
-            Command.SET_MODE_STEP: lambda: self.set_mode('step'),
-            Command.SET_MODE_CONTINUOUS: lambda: self.set_mode('continuous'),
-            Command.SET_MODE_MODEL: lambda: self.set_mode('model'),
+            Command.SET_MODE_STEP: lambda: self.set_mode(CommandMode.STEP),
+            Command.SET_MODE_CONTINUOUS: lambda: self.set_mode(CommandMode.CONTINUOUS),
+            Command.SET_MODE_MODEL: lambda: self.set_mode(CommandMode.MODEL),
+            Command.MOVE_UP: lambda: self.move(MoveDirection.UP),
+            Command.MOVE_DOWN: lambda: self.move(MoveDirection.DOWN),
+            Command.MOVE_LEFT: lambda: self.move(MoveDirection.LEFT),
+            Command.MOVE_RIGHT: lambda: self.move(MoveDirection.RIGHT),
+            Command.MOVE_FRONT: lambda: self.move(MoveDirection.FRONT),
+            Command.MOVE_BACK: lambda: self.move(MoveDirection.BACK),
+            Command.STOP_EXECUTION: lambda: self.stop_execution(),
             Command.STEP_SIZE: lambda: self.set_stepsize(),
             Command.OPEN_TOOL: lambda: self.oc_gripper(True),
             Command.CLOSE_TOOL: lambda: self.oc_gripper(False),
@@ -166,9 +182,6 @@ class CommandGenerator:
 
     def set_mode(self, mode):
         """Set mode command"""
-        if mode not in ['step', 'model', 'continuous']:
-            rospy.logwarn("Invalid mode specified. Ignoring mode command")
-            return
         self.mode = mode
 
     def set_stepsize(self):
@@ -188,8 +201,53 @@ class CommandGenerator:
         """Rotate gripper by a given angle (in degree)"""
         if self.cmd_numeric_param == None:
             return
+        ee_pose = self.manipulator.move_group.get_current_pose()
+        ee_wxyz = [ee_pose.pose.orientation.w,
+                   ee_pose.pose.orientation.x,
+                   ee_pose.pose.orientation.y,
+                   ee_pose.pose.orientation.z]
+        new_wxyz = get_relative_orientation(ee_wxyz, self.cmd_numeric_param)
         
+        pose = geometry_msgs.msg.Pose()
+        pose.position.x = ee_pose.pose.position.x
+        pose.position.y = ee_pose.pose.position.y
+        pose.position.z = ee_pose.pose.position.z
+        pose.orientation.w = new_wxyz[0]
+        pose.orientation.x = new_wxyz[1]
+        pose.orientation.y = new_wxyz[2]
+        pose.orientation.z = new_wxyz[3]
+        self.manipulator.moveit_execute_cartesian_path(pose)
+    
+    def move(self, direction):
+        """Move commands"""
+        if self.mode == CommandMode.STEP:
+            step_size = self.step_size
+        elif step_size == CommandMode.CONTINUOUS:
+            step_size = 10
+        else:
+            return
+        mapping = {
+            MoveDirection.UP: f'Z,{step_size}',
+            MoveDirection.DOWN: f'Z,-{step_size}',
+            MoveDirection.LEFT: f'Y,-{step_size}',
+            MoveDirection.RIGHT: f'Y,{step_size}',
+            MoveDirection.FRONT: f'X,{step_size}',
+            MoveDirection.BACK: f'X,-{step_size}',
+        }
+        move_param = mapping[direction]
+        self.controller_switcher.switch_controller(active=Controller.SERVO, stop=Controller.MOVEIT)
 
+        self.manipulator.servo_move(move_param)
+    
+    def stop_execution(self):
+        """Stop running execution"""
+        if self.controller_switcher.active == Controller.SERVO:
+            self.manipulator.servo_move("Z,0")
+        elif self.controller_switcher.active == Controller.MOVEIT:
+            self.manipulator.move_group.stop()
+            self.manipulator.move_group.clear_pose_targets()
+        else:
+            return
 
     def save_position(self):
         """Save position of end-effector pose"""

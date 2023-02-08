@@ -66,5 +66,7 @@ def _robot_sub(msg, runner):
 def main_robot(config):
     rospy.init_node("nlihrc_robot", anonymous=True, log_level=rospy.INFO)
     cmdgen = CommandGenerator(config)
-    rospy.Subscriber("command", String, _robot_sub, cmdgen)
+    topic = "command"
+    rospy.Subscriber(topic, String, _robot_sub, cmdgen)
+    rospy.loginfo(f"Robot server online. Listening for String msg of format 'cmd,number' at /{topic}")
     rospy.spin()
