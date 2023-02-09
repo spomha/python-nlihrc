@@ -62,9 +62,8 @@ class Command(Enum):
     HOME = 18
 
 class Controller(Enum):
-    MOVEIT = "/position_joint_trajectory_controller"
-    SERVO = "/cartesian_controller"
-
+    MOVEIT = "position_joint_trajectory_controller"
+    SERVO = "cartesian_controller"
 
 def get_relative_orientation(reference, yaw_rotation):
     """Get orientation relative to reference. Reference is in quaternion (WXYZ) while rotation is given in yaw degrees. Returned orientation is in quaternion (WXYZ)"""

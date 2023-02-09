@@ -41,9 +41,9 @@ class CartesianController
   double linear_state_offset_y_;
   double state_delta_;
   double state_previous_step_;
-  const double smooth_c_ = 0.25;
-  const double smooth_b_ = 0.01;
-  const double smooth_r_ = 50; 
+  const double smooth_c_ = 0.75;
+  const double smooth_b_ = 0.03;
+  const double smooth_r_ = 20; 
   State state_;
   // pose
   std::array<double, 16> initial_pose_{};
@@ -53,6 +53,7 @@ class CartesianController
   Axis inp_axis_;
   bool buffer_available_;
   bool buffer_direction_positive_;
+  double buffer_distance_;
   double buffer_linear_runtime_;
   Axis buffer_axis_;
   // methods

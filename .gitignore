@@ -138,3 +138,6 @@ dmypy.json
 # rospkg
 devel/
 logs/
+
+# visual studio code
+.vscode/

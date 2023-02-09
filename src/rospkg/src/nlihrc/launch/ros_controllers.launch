@@ -3,5 +3,7 @@
   <rosparam file="$(find nlihrc)/config/cartesian_controller.yaml" command="load"  subst_value="true"/>
   <!-- Load and start the controllers -->
   <node name="controller_spawner" pkg="controller_manager" type="spawner" respawn="false" output="screen"
-        args="$(arg transmission)_joint_trajectory_controller --stopped cartesian_controller" />
+        args="$(arg transmission)_joint_trajectory_controller" />
+  <node name="controller_spawner_stopped" pkg="controller_manager" type="spawner" respawn="false" output="screen"
+      args="--stopped cartesian_controller" />
 </launch>

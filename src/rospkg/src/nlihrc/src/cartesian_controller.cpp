@@ -59,7 +59,7 @@ bool CartesianController::init(hardware_interface::RobotHW* robot_hardware,
 
 void CartesianController::starting(const ros::Time& /* time */) {
   initial_pose_ = cartesian_pose_handle_->getRobotState().O_T_EE_d;
-  elapsed_time_ = ros::Duration(0.0);
+  elapsed_time_ = ros::Duration(0.001);
   state_delta_ = 0.0;
   linear_state_offset_x_ = 0.0;
   linear_state_offset_y_ = 0.0;
@@ -69,7 +69,8 @@ void CartesianController::starting(const ros::Time& /* time */) {
   inp_axis_ = ZAxis;
   inp_direction_positive_ = false;
   inp_linear_runtime_ = 1.0;
-  state_previous_step_ = 0.0;
+  buffer_distance_ = 0.0;
+  state_previous_step_ = 0;
 
 }
 
@@ -78,6 +79,7 @@ void CartesianController::load_start_state_(double xsec)
   double current_step = state_previous_step_;
 
   // ROS_INFO_STREAM("ELAPSED TIME: " << elapsed_time_.toSec());
+  // ROS_INFO_STREAM("Current step: " << current_step);
 
   if (xsec <= smooth_c_)
   {
@@ -88,7 +90,7 @@ void CartesianController::load_start_state_(double xsec)
   else
   {
     // HARDCODED!
-    current_step = 0.25*smooth_b_*smooth_r_*(xsec-0.21);
+    current_step = 0.25*smooth_b_*smooth_r_*(xsec-0.65);
 
     linear_state_offset_y_ = current_step-0.5*smooth_b_;
     linear_state_offset_x_ = xsec;
@@ -98,6 +100,10 @@ void CartesianController::load_start_state_(double xsec)
 
   // ROS_INFO_STREAM("Current Step: " << current_step);
   state_delta_ = current_step-state_previous_step_;
+  if (state_previous_step_ == 0)
+  {
+    state_delta_ = 0;
+  }
   state_previous_step_ = current_step;
 }
 
@@ -114,7 +120,7 @@ void CartesianController::load_stop_state_(double xsec)
     current_step = (smooth_b_*exp(smooth_r_*z)/(1+exp(smooth_r_*z))) + linear_state_offset_y_;
     state_delta_ = current_step-state_previous_step_;
   }
-  else if (xsec > (linear_state_offset_x_+2*smooth_c_))
+  else if (xsec > (linear_state_offset_x_+1.15*smooth_c_))
   {
     state_ = IDLE;
     state_delta_ = 0;
@@ -157,14 +163,15 @@ void CartesianController::update(const ros::Time& /* time */,
   std::array<double, 16> desired_pose = cartesian_pose_handle_->getRobotState().O_T_EE_d;
   const double xsec=elapsed_time_.toSec();
 
-  // ROS_INFO_STREAM("State delta: " << state_delta_);
-  // ROS_INFO_STREAM("Elapsed Seconds: " << xsec);
-
 
   if (state_ != IDLE)
   {
+
+  // ROS_INFO_STREAM("Elapsed Seconds: " << xsec);
     if (state_ == START or state_ == LINEAR)
-    {
+    {  
+      // ROS_INFO_STREAM("State delta: " << state_delta_);
+
       load_start_state_(xsec);
       if (state_ == LINEAR)
       {
@@ -193,8 +200,8 @@ void CartesianController::update(const ros::Time& /* time */,
       inp_axis_ = buffer_axis_;
       inp_direction_positive_ = buffer_direction_positive_;
       inp_linear_runtime_ = buffer_linear_runtime_;
-      elapsed_time_ = ros::Duration(0.0);
-      state_previous_step_ = 0.0;
+      elapsed_time_ = ros::Duration(0.001);
+      state_previous_step_ = 0;
 
       ROS_INFO_STREAM("Initializing new task. Axis: " 
       << static_cast<int>(inp_axis_) <<
@@ -234,6 +241,12 @@ void CartesianController::command_callback_(const std_msgs::String& msg)
   // Get axis, direction from message
   const Axis axis = static_cast<Axis>((int)elems[0][0]-88);
   const double distance = atof(elems[1].c_str());
+  // return if the same is the same as the one currently executing
+  if (axis == inp_axis_ and distance == buffer_distance_)
+  {
+    return;
+  }
+
   if (state_ == LINEAR)
   {
     state_ = STOP;
@@ -246,10 +259,11 @@ void CartesianController::command_callback_(const std_msgs::String& msg)
   
   buffer_direction_positive_ = distance > 0;
   // HARDCODED! From linear equation:
-  //    distance = 0.25*smooth_b_*smooth_r_*(time-0.21);
-  buffer_linear_runtime_ = std::abs(distance)/(0.25*smooth_b_*smooth_r_) + 0.21;
+  //    distance = 0.25*smooth_b_*smooth_r_*(time-0.65);
+  buffer_linear_runtime_ = std::abs(distance)/(0.25*smooth_b_*smooth_r_) + 0.65;
   buffer_axis_ = axis;
   buffer_available_ = true;
+  buffer_distance_ = distance;
   // ROS_INFO_STREAM("Buffer Axis: " << static_cast<int>(axis));
   // ROS_INFO_STREAM("Buffer Linear Runtime: " << buffer_linear_runtime_);
   // ROS_INFO_STREAM("Buffer Direction Positive: " << buffer_direction_positive_);
