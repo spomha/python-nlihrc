@@ -90,7 +90,7 @@ void CartesianController::load_start_state_(double xsec)
   else
   {
     // HARDCODED!
-    current_step = 0.25*smooth_b_*smooth_r_*(xsec-0.65);
+    current_step = 0.25*smooth_b_*smooth_r_*(xsec-0.32);
 
     linear_state_offset_y_ = current_step-0.5*smooth_b_;
     linear_state_offset_x_ = xsec;
@@ -259,8 +259,8 @@ void CartesianController::command_callback_(const std_msgs::String& msg)
   
   buffer_direction_positive_ = distance > 0;
   // HARDCODED! From linear equation:
-  //    distance = 0.25*smooth_b_*smooth_r_*(time-0.65);
-  buffer_linear_runtime_ = std::abs(distance)/(0.25*smooth_b_*smooth_r_) + 0.65;
+  //    distance = 0.25*smooth_b_*smooth_r_*(time-0.32);
+  buffer_linear_runtime_ = std::abs(distance)/(0.25*smooth_b_*smooth_r_) + 0.32;
   buffer_axis_ = axis;
   buffer_available_ = true;
   buffer_distance_ = distance;

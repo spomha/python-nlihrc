@@ -41,9 +41,9 @@ class CartesianController
   double linear_state_offset_y_;
   double state_delta_;
   double state_previous_step_;
-  const double smooth_c_ = 0.75;
-  const double smooth_b_ = 0.03;
-  const double smooth_r_ = 20; 
+  const double smooth_c_ = 0.4;
+  const double smooth_b_ = 0.04;
+  const double smooth_r_ = 25; 
   State state_;
   // pose
   std::array<double, 16> initial_pose_{};

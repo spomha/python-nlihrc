@@ -1,8 +1,0 @@
-nlihrc
-/home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/.private/nlihrc/cmake.lock /home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/./cmake.lock
-/home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/.private/nlihrc/lib/libnlihrc.so /home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/lib/libnlihrc.so
-/home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/.private/nlihrc/lib/pkgconfig/nlihrc.pc /home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/lib/pkgconfig/nlihrc.pc
-/home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/.private/nlihrc/lib/nlihrc/move_to_start.py /home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/lib/nlihrc/move_to_start.py
-/home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/.private/nlihrc/lib/nlihrc/cmake.lock /home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/lib/nlihrc/cmake.lock
-/home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/.private/nlihrc/share/nlihrc/cmake/nlihrcConfig-version.cmake /home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/share/nlihrc/cmake/nlihrcConfig-version.cmake
-/home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/.private/nlihrc/share/nlihrc/cmake/nlihrcConfig.cmake /home/omar/Work/thesis/python-nlihrc/src/rospkg/devel/share/nlihrc/cmake/nlihrcConfig.cmake
