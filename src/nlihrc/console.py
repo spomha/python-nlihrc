@@ -7,7 +7,7 @@ from pathlib import Path
 import click
 import toml
 from nlihrc import __version__
-from nlihrc.main import main_speech, main_robot
+from nlihrc.main import main_speech, main_robot, main_text, main_app
 
 
 @click.group()
@@ -19,6 +19,15 @@ def nlihrc_cli(ctx, config_path: Path,) -> None:
     ctx.ensure_object(dict)
     config = toml.load(config_path)
     ctx.obj['CONFIG'] = config
+
+
+@nlihrc_cli.command()
+@click.pass_context
+def app(ctx):
+    """Run full app server"""
+    config = ctx.obj['CONFIG']
+    click.echo("Running app server...")
+    main_app(config)
 
 
 @nlihrc_cli.command()
@@ -38,3 +47,13 @@ def robot(ctx):
     click.echo("Running Robot only server...")
 
     main_robot(config)
+
+
+@nlihrc_cli.command()
+@click.pass_context
+def text(ctx):
+    """Run text classification server"""
+    config = ctx.obj['CONFIG']
+    click.echo("Running text classification only server...")
+
+    main_text(config)

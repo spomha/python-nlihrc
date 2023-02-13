@@ -187,7 +187,7 @@ class CommandGenerator:
 
     def set_stepsize(self):
         """Step size command (given in centimeters)"""
-        if self.cmd_numeric_param == None:
+        if self.cmd_numeric_param is None:
             return
         self.step_size = abs(self.cmd_numeric_param) / 100
 
@@ -200,7 +200,7 @@ class CommandGenerator:
 
     def rotate_gripper(self):
         """Rotate gripper by a given angle (in degree)"""
-        if self.cmd_numeric_param == None:
+        if self.cmd_numeric_param is None:
             return
         self.controller_switcher.switch_controller(Controller.MOVEIT, Controller.SERVO)
         ee_pose = self.manipulator.move_group.get_current_pose()
@@ -251,13 +251,13 @@ class CommandGenerator:
 
     def save_position(self):
         """Save position of end-effector pose"""
-        if self.cmd_numeric_param == None:
+        if self.cmd_numeric_param is None:
             return
         self.saved_positions[self.cmd_numeric_param] = self.manipulator.move_group.get_current_pose().pose
     
     def load_position(self):
         """Load position of end-effector pose by executing cartesian trajectory"""
-        if self.cmd_numeric_param == None or self.cmd_numeric_param not in self.saved_positions:
+        if self.cmd_numeric_param is None or self.cmd_numeric_param not in self.saved_positions:
             return
         self.controller_switcher.switch_controller(Controller.MOVEIT, Controller.SERVO)
         self.manipulator.moveit_home(True)
