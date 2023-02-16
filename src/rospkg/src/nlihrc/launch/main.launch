@@ -3,7 +3,8 @@
   <arg name="load_gripper" default="true" />
   <arg name="robot" default="panda" doc="choose your robot."/>
   <arg name="arm_id" default="$(arg robot)" />
-  
+  <arg name="use_camera" default="false" />
+
   <!-- Launch real-robot control -->
   <include file="$(find franka_control)/launch/franka_control.launch" pass_all_args="true" />
 
@@ -11,6 +12,17 @@
   <arg name="transmission" default="position" />
   <!-- Start ROS controllers -->
   <include file="$(dirname)/ros_controllers.launch" pass_all_args="true" />
+  <!-- Start Camera -->
+  <include file="$(find realsense2_camera)/launch/rs_camera.launch" if="$(arg use_camera)">
+    <arg name="align_depth" value="true"/>
+    <arg name="depth_width" value="640"/>
+    <arg name="depth_height" value="480"/>
+    <arg name="depth_fps" value="30"/>
+    <arg name="color_fps" value="30"/>
+  </include>
+  <!-- Publish handeye-calibration -->
+  <include file="$(dirname)/panda_camera_handeye_calibration.launch" if="$(arg use_camera)" />
+
 
   <!-- as well as MoveIt demo -->
   <include file="$(dirname)/demo.launch" pass_all_args="true">

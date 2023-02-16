@@ -170,9 +170,9 @@ class CommandGenerator:
         }
 
     def run(self, cmd, numeric=None):
-        # if self.start_robot is False and cmd != Command.START_ROBOT:
-        #     rospy.logwarn(f"Command failed. Initialize robot with start command before specifying any other command!")
-        #     return
+        if self.start_robot is False and cmd != Command.START_ROBOT:
+            rospy.logwarn(f"Command failed. Initialize robot with 'start robot' command before specifying any other command!")
+            return
         rospy.loginfo(f"Running {cmd = }")
         self.cmd_numeric_param = numeric
         self.cmds[cmd]()
