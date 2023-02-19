@@ -15,10 +15,7 @@ class TextClassifier:
 
         self.command_embeddings = self.model.encode(commands_sentences, convert_to_tensor=False)
 
-        self.threshold = 0.5
-    
-
-    def find_match(self, input_sentence: str) -> Optional[Command]:
+    def find_match(self, input_sentence: str, threshold: float) -> Optional[Command]:
 
         inp_embedding = self.model.encode(input_sentence, convert_to_tensor=False).reshape(1, -1)
 
@@ -26,6 +23,6 @@ class TextClassifier:
 
         maxidx = np.argmax(sim)
 
-        if sim[maxidx] < self.threshold:
+        if sim[maxidx] < threshold:
             return None
         return Command(maxidx)

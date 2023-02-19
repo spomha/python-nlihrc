@@ -1,5 +1,6 @@
 """Robot Manipulation Module"""
 
+import copy
 import rospy
 import moveit_commander
 import actionlib
@@ -12,7 +13,7 @@ import geometry_msgs.msg
 from std_msgs.msg import String
 
 from nlihrc.misc import GoalStatus, CommandMode, Command, Controller, MoveDirection, get_relative_orientation
-
+from nlihrc.cliport_client import CliportClient
 
 class ControllerSwitcher:
     def __init__(self, active: Controller, stopped: Controller) -> None:
@@ -140,10 +141,11 @@ class CommandGenerator:
         # Step size in meters
         self.step_size = 0.1
         # Commands that rely on numeric value use this parameter
-        self.cmd_numeric_param = None
+        self.cmd_param = None
         # Controller switcher
         self.controller_switcher = ControllerSwitcher(active=Controller.MOVEIT, stopped=Controller.SERVO)
-
+        # Cliport client that sends language input and expects pick-place poses from Cliport server
+        self.cliport = CliportClient()
         # Saved positions
         self.saved_positions = {}
 
@@ -166,7 +168,12 @@ class CommandGenerator:
             Command.ROTATE_TOOL: lambda: self.rotate_gripper(),
             Command.SAVE_POSITION: lambda: self.save_position(),
             Command.LOAD_POSITION: lambda: self.load_position(),
-            Command.HOME: lambda: self.home(),
+            Command.GO_HOME: lambda: self.home(),
+            Command.PUT_WHITE_BOX_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_WHITE_BOX_IN_BROWN_BOX.name.lower().replace('_', ' ')),
+            Command.PUT_WHITE_TAPE_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_WHITE_TAPE_IN_BROWN_BOX.name.lower().replace('_', ' ')),
+            Command.PUT_RED_SCREWDRIVER_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_RED_SCREWDRIVER_IN_BROWN_BOX.name.lower().replace('_', ' ')),
+            Command.PUT_BLACK_LEGO_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_BLACK_LEGO_IN_BROWN_BOX.name.lower().replace('_', ' ')),
+            Command.PUT_GREEN_LEGO_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_GREEN_LEGO_IN_BROWN_BOX.name.lower().replace('_', ' ')),
         }
 
     def run(self, cmd, numeric=None):
@@ -174,7 +181,7 @@ class CommandGenerator:
             rospy.logwarn(f"Command failed. Initialize robot with 'start robot' command before specifying any other command!")
             return
         rospy.loginfo(f"Running {cmd = }")
-        self.cmd_numeric_param = numeric
+        self.cmd_param = numeric
         self.cmds[cmd]()
 
     def setup_robot(self, start):
@@ -187,9 +194,9 @@ class CommandGenerator:
 
     def set_stepsize(self):
         """Step size command (given in centimeters)"""
-        if self.cmd_numeric_param is None:
+        if self.cmd_param is None:
             return
-        self.step_size = abs(self.cmd_numeric_param) / 100
+        self.step_size = abs(self.cmd_param) / 100
 
     def oc_gripper(self, open):
         """Open/Close gripper"""
@@ -200,7 +207,7 @@ class CommandGenerator:
 
     def rotate_gripper(self):
         """Rotate gripper by a given angle (in degree)"""
-        if self.cmd_numeric_param is None:
+        if self.cmd_param is None:
             return
         self.controller_switcher.switch_controller(Controller.MOVEIT, Controller.SERVO)
         ee_pose = self.manipulator.move_group.get_current_pose()
@@ -208,7 +215,7 @@ class CommandGenerator:
                    ee_pose.pose.orientation.x,
                    ee_pose.pose.orientation.y,
                    ee_pose.pose.orientation.z]
-        new_wxyz = get_relative_orientation(ee_wxyz, self.cmd_numeric_param)
+        new_wxyz = get_relative_orientation(ee_wxyz, self.cmd_param)
         
         pose = geometry_msgs.msg.Pose()
         pose.position.x = ee_pose.pose.position.x
@@ -251,19 +258,107 @@ class CommandGenerator:
 
     def save_position(self):
         """Save position of end-effector pose"""
-        if self.cmd_numeric_param is None:
+        if self.cmd_param is None:
             return
-        self.saved_positions[self.cmd_numeric_param] = self.manipulator.move_group.get_current_pose().pose
+        self.saved_positions[self.cmd_param] = self.manipulator.move_group.get_current_pose().pose
     
     def load_position(self):
         """Load position of end-effector pose by executing cartesian trajectory"""
-        if self.cmd_numeric_param is None or self.cmd_numeric_param not in self.saved_positions:
+        if self.cmd_param is None or self.cmd_param not in self.saved_positions:
             return
         self.controller_switcher.switch_controller(Controller.MOVEIT, Controller.SERVO)
         self.manipulator.moveit_home(True)
-        self.manipulator.moveit_execute_cartesian_path([self.saved_positions[self.cmd_numeric_param]])
+        self.manipulator.moveit_execute_cartesian_path([self.saved_positions[self.cmd_param]])
 
     def home(self):
         """Goto home joint values"""
         self.controller_switcher.switch_controller(Controller.MOVEIT, Controller.SERVO)
         self.manipulator.moveit_home(True)
+
+    def cliport_cmd(self, language_input):
+        """Run cliport command"""
+        if self.mode != CommandMode.MODEL:
+            rospy.logwarn("CLIPORT commands are only supported in MODEL mode")
+            return
+        self.cliport.publish(language_input)
+        # Wait for server
+        rospy.sleep(2.0)
+        if self.cliport.data is None:
+            rospy.logwarn("CLIPORT client did not receive any output from CLIPORT server")
+            return
+        self.cmd_param = self.cliport.data.copy()
+        self.cliport.data = None
+        self.pick_place()        
+
+    def pick_place(self):
+        """Execute pick/place sequence given the poses"""
+        if self.cmd_param is None:
+            return
+        self.home()
+        # Get ee pose
+        ee_pose = self.manipulator.move_group.get_current_pose()
+        ee_wxyz = [ee_pose.pose.orientation.w,
+                   ee_pose.pose.orientation.x,
+                   ee_pose.pose.orientation.y,
+                   ee_pose.pose.orientation.z]
+        # Execute pick
+        pick_wxyz = get_relative_orientation(ee_wxyz, self.cmd_param['pick_rotation'])
+        pick_xyz = self.cmd_param['pick_xyz']
+        self._pick(pick_xyz, pick_wxyz)
+        # Execute place
+        place_wxyz = get_relative_orientation(ee_wxyz, self.cmd_param['place_rotation'])
+        place_xyz = self.cmd_param['place_xyz']
+        self._place(place_xyz, place_wxyz)
+
+    def _place(self, xyz, wxyz):
+        """Execute place sequence"""
+        # This is used to execute up movement before dropping the target
+        z_offset_up = 0.15
+
+        pose = geometry_msgs.msg.Pose()
+        pose.position.x = xyz[0]
+        pose.position.y = xyz[1]
+        pose.position.z = xyz[2] + z_offset_up
+        pose.orientation.w = wxyz[0]
+        pose.orientation.x = wxyz[1]
+        pose.orientation.y = wxyz[2]
+        pose.orientation.z = wxyz[3]
+
+        # Move above object and open gripper
+        rospy.loginfo("Moving towards place object and opening gripper")
+        self.manipulator.moveit_execute_cartesian_path([pose])
+        self.oc_gripper(True)
+    
+    def _pick(self, xyz, wxyz):
+        """Execute pick sequence"""
+        # This is used to execute up-down movement when grasping the target
+        z_offset_up = 0.035
+        z_offset_up_2 = 0.20
+        z_offset_down = 0.015
+
+        pose = geometry_msgs.msg.Pose()
+        pose.position.x = xyz[0]
+        pose.position.y = xyz[1]
+        pose.position.z = xyz[2]
+        pose.orientation.w = wxyz[0]
+        pose.orientation.x = wxyz[1]
+        pose.orientation.y = wxyz[2]
+        pose.orientation.z = wxyz[3]
+
+        # Move above object and open gripper
+        rospy.loginfo("Moving towards pick object and opening gripper")
+        pose_up = copy.deepcopy(pose)
+        pose_up.position.z += z_offset_up
+        self.manipulator.moveit_execute_cartesian_path([pose_up])
+        self.oc_gripper(True)
+        # Move down and grasp object
+        rospy.loginfo("Moving down and grasping pick object")
+        pose_down = copy.deepcopy(pose)
+        pose_down.position.z -= z_offset_down
+        self.manipulator.moveit_execute_cartesian_path([pose_down])
+        self.oc_gripper(False)
+        # Move up again
+        rospy.loginfo("Moving up again after picking object")
+        pose_up_2 = copy.deepcopy(pose)
+        pose_up_2.position.z += z_offset_up_2
+        self.manipulator.moveit_execute_cartesian_path([pose_up_2])

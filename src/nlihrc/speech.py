@@ -6,6 +6,7 @@ import onnxruntime
 import json
 import time
 from word2number import w2n
+from nlihrc.misc import CLIPORT_CMDS
 
 
 class OnnxWrapper():
@@ -65,7 +66,7 @@ class SpeechRecognizer:
         """Class Constructor"""
         self.vad = OnnxWrapper(str(Path(model_path, 'silero_vad.onnx')))
         self.audio_chunks = []
-        self.speech_start_idx = []
+        self.speech_start_idx = 0
         self.start_speech = False
         self.time_since_last_speech = 0.0
         self.speech_end_interval = 0.5
@@ -79,13 +80,15 @@ class SpeechRecognizer:
         model = vosk.Model(model_path)
         self.rec = vosk.KaldiRecognizer(model, self.rate, json.dumps([
         # System commands
-        "start", "stop", "robot", "execution", "move", "go", "mode", "continuous", "model", "step", "size", "tool", "open", "close", "rotate",
+        "start", "stop", "robot", "execution", "move", "go", "set mode", "continuous", "model", "step", "size", "tool", "open", "close", "rotate",
         "save", "home", "position", "load", "the"
         # Directions
-        "up", "down", "left", "right", "forward", "backward", "front", "back",
+        "up", "upward", "down", "left", "right", "forward", "backward", "front", "back",
         # numbers
         *self.numbers,
         "minus", "negative",
+        # cliport
+        *CLIPORT_CMDS,
         # unknown
         "[unk]"]))
         
@@ -96,24 +99,24 @@ class SpeechRecognizer:
         number = None
         # Detect Speech
         self.audio_chunks.append(data)
-        audio_int16 = np.frombuffer(data, np.int16);
+        audio_int16 = np.frombuffer(data, np.int16)
         audio_float32 = int2float(audio_int16)
         output = self.vad(audio_float32, self.rate)
         if output > 0.5:
             #print("Speec Detected")
+            if not self.start_speech:
+                self.speech_start_idx = len(self.audio_chunks) - 1
             self.start_speech = True
-            self.speech_start_idx.append(len(self.audio_chunks) - 1)
             self.time_since_last_speech = time.time()
         else:
             if self.start_speech and time.time() - self.time_since_last_speech > self.speech_end_interval:
                 #print("Speech Ended")
-                start_idx = np.min(self.speech_start_idx) - self.chunk_offset
-                end_idx = np.max(self.speech_start_idx) + self.chunk_offset
+                start_idx = self.speech_start_idx - self.chunk_offset
                 #print(f"Speech Index Interval: [{start_idx}, {end_idx}]")
                 self.start_speech = False
-                self.speech_start_idx = []
-                
-                speech = b''.join(self.audio_chunks[start_idx: end_idx])
+                self.speech_start_idx = 0
+                speech = b''.join(self.audio_chunks[start_idx:])
+                self.audio_chunks = []
                 # Convert speech to text
                 self.rec.AcceptWaveform(speech)
                 words = json.loads(self.rec.FinalResult())["text"].split(' ')

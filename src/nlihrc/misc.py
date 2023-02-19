@@ -5,6 +5,15 @@ import numpy as np
 from transforms3d._gohlketransforms import quaternion_matrix, euler_matrix, quaternion_from_matrix
 
 
+
+CLIPORT_CMDS = [
+    "put white box in brown box",
+    "put white tape in brown box",
+    "put red screwdriver in brown box",
+    "put black lego in brown box",
+    "put green lego in brown box",
+]
+
 class GoalStatus(Enum):
     PENDING = 0   # The goal has yet to be processed by the action server
     ACTIVE  = 1   # The goal is currently being processed by the action server
@@ -59,7 +68,12 @@ class Command(Enum):
     ROTATE_TOOL = 15
     SAVE_POSITION = 16
     LOAD_POSITION = 17
-    HOME = 18
+    GO_HOME = 18
+    PUT_WHITE_BOX_IN_BROWN_BOX = 19
+    PUT_WHITE_TAPE_IN_BROWN_BOX = 20
+    PUT_RED_SCREWDRIVER_IN_BROWN_BOX = 21
+    PUT_BLACK_LEGO_IN_BROWN_BOX = 22
+    PUT_GREEN_LEGO_IN_BROWN_BOX = 23
 
 class Controller(Enum):
     MOVEIT = "position_joint_trajectory_controller"

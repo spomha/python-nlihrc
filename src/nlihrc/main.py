@@ -156,7 +156,7 @@ def main_app(config):
                 continue
             # Text to command classification
             sentence = ' '.join(words)
-            cmd = textclassifier.find_match(sentence)
+            cmd = textclassifier.find_match(sentence, 0.95)
             if cmd is None:
                 rospy.logwarn(f"Couldn't classify given {sentence = } to any command")
                 continue
