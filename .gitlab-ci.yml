@@ -1,3 +1,0 @@
-include:
-  - project: 'advian-oss/ci'
-    file: '/common/.gitlab-ci.yml'
