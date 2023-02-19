@@ -12,7 +12,7 @@ from moveit_msgs.msg import RobotTrajectory
 import geometry_msgs.msg
 from std_msgs.msg import String
 
-from nlihrc.misc import GoalStatus, CommandMode, Command, Controller, MoveDirection, get_relative_orientation
+from nlihrc.misc import GoalStatus, CommandMode, Command, Controller, MoveDirection, get_relative_orientation, CLIPORT_CMDS
 from nlihrc.cliport_client import CliportClient
 
 class ControllerSwitcher:
@@ -155,7 +155,7 @@ class CommandGenerator:
             Command.SET_MODE_STEP: lambda: self.set_mode(CommandMode.STEP),
             Command.SET_MODE_CONTINUOUS: lambda: self.set_mode(CommandMode.CONTINUOUS),
             Command.SET_MODE_MODEL: lambda: self.set_mode(CommandMode.MODEL),
-            Command.MOVE_UP: lambda: self.move(MoveDirection.UP),
+            Command.MOVE_UPWARD: lambda: self.move(MoveDirection.UP),
             Command.MOVE_DOWN: lambda: self.move(MoveDirection.DOWN),
             Command.MOVE_LEFT: lambda: self.move(MoveDirection.LEFT),
             Command.MOVE_RIGHT: lambda: self.move(MoveDirection.RIGHT),
@@ -169,11 +169,11 @@ class CommandGenerator:
             Command.SAVE_POSITION: lambda: self.save_position(),
             Command.LOAD_POSITION: lambda: self.load_position(),
             Command.GO_HOME: lambda: self.home(),
-            Command.PUT_WHITE_BOX_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_WHITE_BOX_IN_BROWN_BOX.name.lower().replace('_', ' ')),
-            Command.PUT_WHITE_TAPE_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_WHITE_TAPE_IN_BROWN_BOX.name.lower().replace('_', ' ')),
-            Command.PUT_RED_SCREWDRIVER_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_RED_SCREWDRIVER_IN_BROWN_BOX.name.lower().replace('_', ' ')),
-            Command.PUT_BLACK_LEGO_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_BLACK_LEGO_IN_BROWN_BOX.name.lower().replace('_', ' ')),
-            Command.PUT_GREEN_LEGO_IN_BROWN_BOX: lambda: self.cliport_cmd(Command.PUT_GREEN_LEGO_IN_BROWN_BOX.name.lower().replace('_', ' ')),
+            Command.PUT_WHITE_BOX_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[0]),
+            Command.PUT_WHITE_TAPE_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[1]),
+            Command.PUT_RED_SCREWDRIVER_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[2]),
+            Command.PUT_BLACK_LEGO_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[3]),
+            Command.PUT_GREEN_LEGO_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[4]),
         }
 
     def run(self, cmd, numeric=None):

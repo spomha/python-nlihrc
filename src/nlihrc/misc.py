@@ -55,7 +55,7 @@ class Command(Enum):
     SET_MODE_STEP = 2
     SET_MODE_CONTINUOUS = 3
     SET_MODE_MODEL = 4
-    MOVE_UP = 5
+    MOVE_UPWARD = 5
     MOVE_DOWN = 6
     MOVE_LEFT = 7
     MOVE_RIGHT = 8
