@@ -328,6 +328,7 @@ class CommandGenerator:
         rospy.loginfo("Moving towards place object and opening gripper")
         self.manipulator.moveit_execute_cartesian_path([pose])
         self.oc_gripper(True)
+        self.home()
     
     def _pick(self, xyz, wxyz):
         """Execute pick sequence"""
