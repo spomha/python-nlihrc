@@ -26,7 +26,7 @@ class UDPReceiver (threading.Thread):
         self.close_thread = False
         self.bs = buffersize
         self.udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.udp.settimeout(1)
+        self.udp.settimeout(3)
         self.udp.bind((ip, port))
         self.host_ip=get_ip()
       
@@ -36,8 +36,9 @@ class UDPReceiver (threading.Thread):
             try:
                 data, _ = self.udp.recvfrom(self.bs)
             except socket.timeout:
-                pass
+                continue
             if 'data' in locals():
                 self.q.put(data)
+                del data
         
         self.udp.close()

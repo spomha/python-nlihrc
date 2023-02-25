@@ -23,7 +23,7 @@ def main_speech(config):
     # UDP Receiver (Handles Android App comm.)
     udp = UDPReceiver(chunk, ip, port)
     # Speech Recognizer (Handles speech to text)
-    rec = SpeechRecognizer(modelpath, rate)
+    rec = SpeechRecognizer(modelpath, rate, chunk)
     
     # Start udp thread
     udp.start()
@@ -131,7 +131,7 @@ def main_app(config):
     # UDP Receiver (Handles Android App comm.)
     udp = UDPReceiver(chunk, ip, port)
     # Speech Recognizer (Handles speech to text)
-    rec = SpeechRecognizer(modelpath, rate)
+    rec = SpeechRecognizer(modelpath, rate, chunk)
     # Text classififiers (Handles text to command)
     textclassifier = TextClassifier()
     # Command generator (Handles robot manipulation based on commands)
@@ -156,7 +156,7 @@ def main_app(config):
                 continue
             # Text to command classification
             sentence = ' '.join(words)
-            cmd = textclassifier.find_match(sentence, 0.9)
+            cmd = textclassifier.find_match(sentence, 0.7)
             if cmd is None:
                 rospy.logwarn(f"Couldn't classify given {sentence = } to any command")
                 continue

@@ -62,35 +62,37 @@ def int2float(sound):
 
 class SpeechRecognizer:
     """Handles vosk and vad speech to text"""
-    def __init__(self, model_path, sample_rate):
+    def __init__(self, model_path, sample_rate, chunk_size):
         """Class Constructor"""
         self.vad = OnnxWrapper(str(Path(model_path, 'silero_vad.onnx')))
         self.audio_chunks = []
         self.speech_start_idx = 0
+        self.speech_end_idx = 0
         self.start_speech = False
-        self.time_since_last_speech = 0.0
-        self.speech_end_interval = 0.5
-        self.chunk_offset = 3
         self.rate = sample_rate
+        offset_duration = 0.5 # in seconds
+        self.chunk_offset = 2*int(np.ceil((self.rate*offset_duration)/chunk_size))
 
         self.numbers = ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten", "zero",
         "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen", "seventeen", "eighteen", "nineteen", "twenty",
         "thirty", "forty", "fifty", "sixty", "seventy", "eighty", "ninety", "hundred", "thousand",]
         
+        self.unknown_word = "[unk]"
+
         model = vosk.Model(model_path)
         self.rec = vosk.KaldiRecognizer(model, self.rate, json.dumps([
         # System commands
         "start", "stop", "robot", "execution", "move", "go", "set mode", "continuous", "model", "step", "size", "tool", "open", "close", "rotate",
-        "save", "home", "position", "load", "the"
+        "save", "home", "position", "load", "place", "the",
         # Directions
-        "up", "upward", "down", "left", "right", "forward", "backward", "front", "back",
+        "up", "down", "left", "right", "forward", "backward", "front", "back",
         # numbers
         *self.numbers,
         "minus", "negative",
         # cliport
         *CLIPORT_CMDS,
         # unknown
-        "[unk]"]))
+        self.unknown_word]))
         
     
     def speech_to_text(self, data):
@@ -103,18 +105,14 @@ class SpeechRecognizer:
         audio_float32 = int2float(audio_int16)
         output = self.vad(audio_float32, self.rate)
         if output > 0.5:
-            #print("Speec Detected")
             if not self.start_speech:
                 self.speech_start_idx = len(self.audio_chunks) - 1
             self.start_speech = True
-            self.time_since_last_speech = time.time()
+            self.speech_end_idx = len(self.audio_chunks) + self.chunk_offset
         else:
-            if self.start_speech and time.time() - self.time_since_last_speech > self.speech_end_interval:
-                #print("Speech Ended")
-                start_idx = self.speech_start_idx - self.chunk_offset
-                #print(f"Speech Index Interval: [{start_idx}, {end_idx}]")
+            if self.start_speech and len(self.audio_chunks) > self.speech_end_idx:
+                start_idx = max(0, self.speech_start_idx - self.chunk_offset)
                 self.start_speech = False
-                self.speech_start_idx = 0
                 speech = b''.join(self.audio_chunks[start_idx:])
                 self.audio_chunks = []
                 # Convert speech to text
@@ -123,15 +121,23 @@ class SpeechRecognizer:
                 # Find number in word sequence (ONLY works for single numeric sequence)
                 num_str = ""
                 is_positive = True
+                found_unknown = False
                 for word in words:
                     if word in self.numbers:
                         num_str = num_str + f" {word}"
                     if word in ['minus', 'negative']:
                         is_positive = False
+                    if self.unknown_word == word:
+                        found_unknown = True
+                        break
                 if num_str != "":
                     try:
                         number = (2*is_positive - 1)*w2n.word_to_num(num_str)
                     except Exception:
                         number = None
-                
+                # Filter out instructions that contain unknown word
+                if found_unknown:
+                    words = []
+                    number = None
+                self.vad.reset_states()
         return words, number

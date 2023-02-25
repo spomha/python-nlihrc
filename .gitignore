@@ -142,3 +142,7 @@ logs/
 
 # visual studio code
 .vscode/
+
+# Others
+plotdata/
+extras/

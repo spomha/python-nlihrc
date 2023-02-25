@@ -155,7 +155,7 @@ class CommandGenerator:
             Command.SET_MODE_STEP: lambda: self.set_mode(CommandMode.STEP),
             Command.SET_MODE_CONTINUOUS: lambda: self.set_mode(CommandMode.CONTINUOUS),
             Command.SET_MODE_MODEL: lambda: self.set_mode(CommandMode.MODEL),
-            Command.MOVE_UPWARD: lambda: self.move(MoveDirection.UP),
+            Command.MOVE_UP: lambda: self.move(MoveDirection.UP),
             Command.MOVE_DOWN: lambda: self.move(MoveDirection.DOWN),
             Command.MOVE_LEFT: lambda: self.move(MoveDirection.LEFT),
             Command.MOVE_RIGHT: lambda: self.move(MoveDirection.RIGHT),
