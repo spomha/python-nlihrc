@@ -241,11 +241,6 @@ void CartesianController::command_callback_(const std_msgs::String& msg)
   // Get axis, direction from message
   const Axis axis = static_cast<Axis>((int)elems[0][0]-88);
   const double distance = atof(elems[1].c_str());
-  // return if the same is the same as the one currently executing
-  if (axis == inp_axis_ and distance == buffer_distance_)
-  {
-    return;
-  }
 
   if (state_ == LINEAR)
   {
@@ -260,13 +255,10 @@ void CartesianController::command_callback_(const std_msgs::String& msg)
   buffer_direction_positive_ = distance > 0;
   // HARDCODED! From linear equation:
   //    distance = 0.25*smooth_b_*smooth_r_*(time-0.32);
-  buffer_linear_runtime_ = std::abs(distance)/(0.25*smooth_b_*smooth_r_) + 0.32;
+  buffer_linear_runtime_ = std::abs(distance-2*smooth_b_)/(0.25*smooth_b_*smooth_r_) + 0.32;
   buffer_axis_ = axis;
   buffer_available_ = true;
   buffer_distance_ = distance;
-  // ROS_INFO_STREAM("Buffer Axis: " << static_cast<int>(axis));
-  // ROS_INFO_STREAM("Buffer Linear Runtime: " << buffer_linear_runtime_);
-  // ROS_INFO_STREAM("Buffer Direction Positive: " << buffer_direction_positive_);
 
 }
 
