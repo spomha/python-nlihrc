@@ -12,6 +12,7 @@ CLIPORT_CMDS = [
     "put red screwdriver in brown box",
     "put black lego in brown box",
     "put green lego in brown box",
+    "pick a white box",
 ]
 
 class GoalStatus(Enum):
@@ -68,12 +69,13 @@ class Command(Enum):
     ROTATE_TOOL = 15
     SAVE_POSITION = 16
     LOAD_POSITION = 17
-    GO_HOME = 18
+    HOME = 18
     PUT_WHITE_BOX_IN_BROWN_BOX = 19
     PUT_WHITE_TAPE_IN_BROWN_BOX = 20
     PUT_RED_SCREWDRIVER_IN_BROWN_BOX = 21
     PUT_BLACK_LEGO_IN_BROWN_BOX = 22
     PUT_GREEN_LEGO_IN_BROWN_BOX = 23
+    PICK_A_WHITE_BOX = 24
 
 class Controller(Enum):
     MOVEIT = "position_joint_trajectory_controller"

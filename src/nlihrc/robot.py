@@ -168,12 +168,13 @@ class CommandGenerator:
             Command.ROTATE_TOOL: lambda: self.rotate_gripper(),
             Command.SAVE_POSITION: lambda: self.save_position(),
             Command.LOAD_POSITION: lambda: self.load_position(),
-            Command.GO_HOME: lambda: self.home(),
+            Command.HOME: lambda: self.home(),
             Command.PUT_WHITE_BOX_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[0]),
             Command.PUT_WHITE_TAPE_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[1]),
             Command.PUT_RED_SCREWDRIVER_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[2]),
             Command.PUT_BLACK_LEGO_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[3]),
             Command.PUT_GREEN_LEGO_IN_BROWN_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[4]),
+            Command.PICK_A_WHITE_BOX: lambda: self.cliport_cmd(CLIPORT_CMDS[5]),
         }
 
     def run(self, cmd, numeric=None):
@@ -288,7 +289,27 @@ class CommandGenerator:
             return
         self.cmd_param = self.cliport.data.copy()
         self.cliport.data = None
-        self.pick_place()        
+        if language_input == CLIPORT_CMDS[5]:
+            self.pick_only()
+        else:
+            self.pick_place()     
+    
+    def pick_only(self):
+        """Execute only a pick sequence"""
+        if self.cmd_param is None:
+            return
+        self.home()
+        # Get ee pose
+        ee_pose = self.manipulator.move_group.get_current_pose()
+        ee_wxyz = [ee_pose.pose.orientation.w,
+                   ee_pose.pose.orientation.x,
+                   ee_pose.pose.orientation.y,
+                   ee_pose.pose.orientation.z]
+        # Execute pick
+        pick_wxyz = get_relative_orientation(ee_wxyz, self.cmd_param['pick_rotation'])
+        pick_xyz = self.cmd_param['pick_xyz']
+        self._pick(pick_xyz, pick_wxyz)
+
 
     def pick_place(self):
         """Execute pick/place sequence given the poses"""
