@@ -255,7 +255,12 @@ void CartesianController::command_callback_(const std_msgs::String& msg)
   buffer_direction_positive_ = distance > 0;
   // HARDCODED! From linear equation:
   //    distance = 0.25*smooth_b_*smooth_r_*(time-0.32);
-  buffer_linear_runtime_ = std::abs(distance-2*smooth_b_)/(0.25*smooth_b_*smooth_r_) + 0.32;
+  buffer_linear_runtime_ = (std::abs(distance)-2*smooth_b_)/(0.25*smooth_b_*smooth_r_) + 0.32;
+  if (buffer_linear_runtime_ < 0)
+  {
+    ROS_WARN_STREAM("Cannot execute cartesian motion. Step size is too small!");
+    return;
+  }
   buffer_axis_ = axis;
   buffer_available_ = true;
   buffer_distance_ = distance;

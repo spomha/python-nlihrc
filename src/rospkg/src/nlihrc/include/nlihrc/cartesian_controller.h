@@ -32,9 +32,9 @@ class CartesianController
   std::unique_ptr<franka_hw::FrankaCartesianPoseHandle> cartesian_pose_handle_;
   ros::Duration elapsed_time_;
   //limits
-  const std::array<double, 2> x_limits_={0.3, 0.6};
+  const std::array<double, 2> x_limits_={0.3, 0.65};
   const std::array<double, 2> y_limits_={-0.25, 0.25};
-  const std::array<double, 2> z_limits_={0.05, 0.5};
+  const std::array<double, 2> z_limits_={0.02, 0.5};
   const double limit_offset_ = 0.025;
   // state variables
   double linear_state_offset_x_;
